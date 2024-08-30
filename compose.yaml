@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  website:
+    depends_on:
+      - auth-service
+      - payment-service
+    build: ./frontend
+    ports:
+      - 5173:5173
+    environment:
+      VITE_API_URL: http://localhost:8000
+    develop:
+      # we specify the files to watch for changes
+      watch:
+        # it'll watch for changes in package.json and package-lock.json and rebuild the container if there are any changes
+        - path: ./frontend/package.json
+          action: rebuild
+        - path: ./frontend/package-lock.json
+          action: rebuild
+        # it'll watch for changes in the frontend directory and sync the changes with the container real time
+        - path: ./frontend
+          target: /app
+          action: sync
+
+  auth-service:
+    depends_on:
+      - db
+    build: ./auth-service
+    ports:
+      - 8001:8001
+    environment:
+      DB_URL: mongodb://db/users
+
+    develop:
+      watch:
+        - path: ./auth-service/package.json
+          action: rebuild
+        - path: ./auth-service/package-lock.json
+          action: rebuild
+
+        - path: ./auth-service
+          action: sync
+          target: /app
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - 8000:8000
+    develop:
+      watch:
+        - path: ./payment-service/package.json
+          action: rebuild
+        - path: ./payment-service/package-lock.json
+          action: rebuild
+
+        - path: ./payment-service
+          action: sync
+          target: /app
+
+  db:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - users:/data/db
+
+volumes:
+  users:
